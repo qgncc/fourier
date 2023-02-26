@@ -1,3 +1,5 @@
+import { useMemo } from "react"
+
 type Points = Array<[number, number]>
 type MathFunction = (x: number)=>number 
 
@@ -42,7 +44,7 @@ export function Graph({scale = 1, mathFunction, width, height, detailLevel = 1}:
       return line
     }
 
-    let line = createLine(mathFunction)  
+    let line = useMemo(()=>createLine(mathFunction), [mathFunction])  
 
     return( 
       <svg width={width} height={height} viewBox={`0 0 ${xViewBox} ${yViewBox}`}>
