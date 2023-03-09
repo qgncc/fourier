@@ -1,71 +1,141 @@
 import { useMemo } from "react";
 
 type Points = Array<[number, number]>;
-type MathFunction = (x: number) => number;
 
-interface GraphProps {
-  mathFunction: MathFunction;
+export interface GraphProps {
+  points: Points;
   width: number;
   height: number;
+  unitInterval: number;
   scale?: number;
-  detailLevel?: number;
+  graphColor?: string;
+  axisColor?: string;
+  strokeWidth?: number;
+  center?: [number, number];
 }
 
 type Coords = [number, number];
 
 export function Graph({
-  scale = 1,
-  mathFunction,
+  unitInterval = 1,
+  points,
   width,
   height,
-  detailLevel = 1,
+  strokeWidth = 1,
+  graphColor = "#ff0000",
+  axisColor = "#312312",
+  center = [width / 2, height / 2],
 }: GraphProps) {
   const xViewBox = width;
   const yViewBox = height;
 
-  const centerX = width / 2;
-  const centerY = height / 2;
-
-  const unitInterval = 1 * scale;
+  const [centerX, centerY] = center;
 
   function centerCoordsToSVGCoords([x, y]: Coords): Coords {
     return [x + centerX, -y + centerY];
   }
 
-  function createLine(func: MathFunction) {
-    let startX = -centerX / unitInterval;
-    let endX = centerX / unitInterval;
-
+  function createLine(points: Points) {
     let line = `M ${centerCoordsToSVGCoords([
-      startX * unitInterval,
-      func(startX) * unitInterval,
+      points[0][0] * unitInterval,
+      points[0][1] * unitInterval,
     ]).join(" ")} `;
 
-    for (let x = startX; x < endX; x += 1 / detailLevel) {
+    for (let [x, y] of points) {
       let [SVGX, SVGY] = centerCoordsToSVGCoords([
         x * unitInterval,
-        func(x) * unitInterval,
+        y * unitInterval,
       ]);
       line += `L ${SVGX} ${SVGY} `;
     }
     return line;
   }
+  let axisXStart =
+    centerX - strokeWidth < 0
+      ? strokeWidth / 2
+      : centerX + strokeWidth > width
+      ? width - strokeWidth / 2
+      : centerX;
+  let axisYStart =
+    centerY - strokeWidth < 0
+      ? strokeWidth / 2
+      : centerY + strokeWidth > width
+      ? width - strokeWidth / 2
+      : centerY;
 
-  let line = useMemo(() => createLine(mathFunction), [mathFunction]);
-
+  let unitMarksX =
+    Array(Math.floor((width - centerX) / unitInterval))
+      .fill(0)
+      .map(
+        (elem, i) =>
+          `M ${centerX + unitInterval * (i + 1)} ${axisYStart - 4} L ${
+            centerX + unitInterval * (i + 1)
+          } ${axisYStart + 4} `
+      )
+      .join(" ") +
+    " " +
+    Array(Math.floor(centerX / unitInterval))
+      .fill(0)
+      .map(
+        (elem, i) =>
+          `M ${centerX - unitInterval * (i + 1)} ${axisYStart - 4} L ${
+            centerX - unitInterval * (i + 1)
+          } ${axisYStart + 4} `
+      )
+      .join(" ");
+  let unitMarksY =
+    Array(Math.floor((height - centerY) / unitInterval))
+      .fill(0)
+      .map(
+        (elem, i) =>
+          `M ${axisXStart - 4} ${centerY + unitInterval * (i + 1)} L ${
+            axisXStart + 4
+          } ${centerY + unitInterval * (i + 1)}`
+      )
+      .join(" ") +
+    " " +
+    Array(Math.floor(centerY / unitInterval))
+      .fill(0)
+      .map(
+        (elem, i) =>
+          `M ${axisXStart - 4} ${centerY - unitInterval * (i + 1)} L ${
+            axisXStart + 4
+          } ${centerY - unitInterval * (i + 1)}`
+      )
+      .join(" ");
+  let line = useMemo(() => createLine(points), [points]);
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${xViewBox} ${yViewBox}`}>
+    <svg
+      width={width}
+      height={height}
+      strokeWidth={strokeWidth}
+      strokeLinecap={"round"}
+    >
       <path
-        d={`M ${centerX} 0 L ${centerX} ${yViewBox}`}
+        d={`M ${axisXStart} 0 L ${axisXStart} ${yViewBox}`}
         fill="transparent"
-        stroke="#312312"
+        stroke={axisColor}
       />
       <path
-        d={`M 0 ${centerY} L ${xViewBox} ${centerY}`}
+        d={`M 0 ${axisYStart} L ${xViewBox} ${axisYStart}`}
         fill="transparent"
-        stroke="#312312"
+        stroke={axisColor}
       />
-      <path d={line} fill="transparent" stroke="#ff0000" />
+      <path d={line} fill="transparent" stroke={graphColor} />
+      {/* UNIT MARKS */}
+      <path
+        d={unitMarksX}
+        fill="transparent"
+        strokeWidth={3}
+        stroke={axisColor}
+      />
+      <path
+        d={unitMarksY}
+        fill="transparent"
+        strokeWidth={3}
+        stroke={axisColor}
+      />
+      {/* END OF UNIT MARKS */}
     </svg>
   );
 }
