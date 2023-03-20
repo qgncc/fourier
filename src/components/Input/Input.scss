@@ -1,0 +1,11 @@
+.input{
+    background-color: #000;
+    color: #fff;
+    border-width: 0 0 1px 0;
+    display: inline;
+    width:100px;
+    text-align: center;
+    &:focus{
+        outline:none;
+    }
+}
